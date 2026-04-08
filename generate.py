@@ -4,7 +4,7 @@
 # ================================================
 # HOW TO RUN:
 #   1. Put data.txt in this same folder
-#   2. Open terminal here
+#   2. Open terminal here.
 #   3. Type:  python tokenizer.py
 # ================================================
 
