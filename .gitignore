@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Project Specific - Large Data Files
+# We ignore the massive prepared data (980MB) but keep the weights (~1MB) 
+# and vocab so others can run the web app immediately.
+data_prepared.npz
+data.txt
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Flask/Flask-CORS temp
+.pytest_cache/
