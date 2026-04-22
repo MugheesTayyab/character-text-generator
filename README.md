@@ -1,160 +1,155 @@
-# Character-Level Text Generator
-### Built from scratch using Python + NumPy only + no ML frameworks
+# Character-Level Text Generator & Full-Stack Web App
+### Built from scratch: Python + NumPy core. Zero ML frameworks. Minimalist Matte Web UI.
 
 ---
 
 ## What this is
 
-A language model that learns to generate text one character at a time.  
-Trained on Shakespeare. Built without PyTorch, TensorFlow, or any AI library.  
-Every single component , tokenization, forward pass, backpropagation, gradient descent , is written manually in NumPy.
+A language model that reads Shakespeare and learns to generate new text — one character at a time.
 
-> This project exists to prove understanding, not just usage.  
-> Anyone can call an API. This is what happens underneath one.
+No PyTorch. No TensorFlow. No Hugging Face. No shortcuts.
+
+Every component is written manually:
+tokenization, embeddings, forward pass, backpropagation, gradient descent, and temperature-controlled sampling.
+
+Recently upgraded into a **Full-Stack Web Application** featuring a Flask API and a gorgeous, minimalist matte-themed frontend with live generation tracing.
+
+> Anyone can call an API.
+> This is what happens inside one, and how you deploy it.
 
 ---
 
-## Live demo
-
-> Coming after training is complete , link will appear here
-
----
-
-## How it works
-
-The model reads a sequence of characters and predicts what comes next.  
-It learns by making a prediction, measuring how wrong it was, and adjusting its weights.  
-Repeat millions of times. The loss goes down. The text starts making sense.
+## Results after training
 
 ```
-Input  →  "To be or not to b"
-Output →  "e"
+Seed: "To be or not"
+
+Low temperature (0.4) — safe and coherent:
+To be or not the king, and so the world
+shall see the sun of all the state of men
+
+High temperature (1.2) — creative:
+To be or not the beauty of the broken crown
+that hath no fellow in the mortal eyes
 ```
 
-Then it feeds that output back in, predicts the next, and keeps going.
+Loss dropped from 4.17 to 1.78 over 100 epochs.
 
 ---
 
-## Theory implemented (from scratch)
+## How it works — 4 Phases
 
-Every concept below is implemented manually — not imported from a library.
+```
+data.txt  ->  tokenizer.py  ->  train.py  ->  generate.py  ->  app.py (Web App)
+              (Phase 1)         (Phase 2)      (Phase 3)         (Phase 4)
+```
 
-| Concept | Where it appears |
+**Phase 1 — Tokenization:**
+Read 1.1M characters, build 65-char vocabulary, encode to integers, create 892,000 training pairs, split 80/10/10.
+
+**Phase 2 — Training:**
+Embedding layer, hidden layer with ReLU, softmax output, cross-entropy loss, backprop via chain rule, gradient descent.
+
+**Phase 3 — Generation:**
+Load weights, feed seed text, sample next character from probability distribution, repeat. Temperature controls creativity.
+
+**Phase 4 — Serving (Web UI):**
+Flask API wraps the numpy model. A beautiful, minimalist matte UI built with vanilla JS and CSS connects to the API. It features a typewriter effect and a live sidebar that traces the model's exact thought process (`Context -> Selected Character`) step-by-step.
+
+---
+
+## Theory implemented (all from scratch)
+
+| Concept | File |
 |---|---|
-| Character-level tokenization | `tokenizer.py` — Step 2 |
-| Integer encoding (char → ID) | `tokenizer.py` — Step 3 |
-| Dense embeddings | `train.py` — W_embed matrix |
-| Forward pass  Z = XW + B | `train.py` — forward() |
-| ReLU activation | `train.py` — np.maximum(0, z) |
-| Softmax | `train.py` — probability distribution |
-| Cross-entropy loss | `train.py` — loss() |
-| Backpropagation (chain rule) | `train.py` — backward() |
-| Gradient descent weight update | `train.py` — W = W - lr * grad |
-| Train / Val / Test split (80/10/10) | `tokenizer.py` — Step 5 |
-| Sliding window X/Y sequence pairs | `tokenizer.py` — Step 6 |
-| Temperature-controlled sampling | `generate.py` |
+| Character-level tokenization | tokenizer.py |
+| Integer encoding | tokenizer.py |
+| Sliding window X/Y pairs | tokenizer.py |
+| Train / Val / Test split (80/10/10) | tokenizer.py |
+| Dense embeddings | train.py |
+| Forward pass  Z = XW + B | train.py |
+| ReLU activation | train.py |
+| Softmax | train.py |
+| Cross-entropy loss | train.py |
+| Backpropagation (chain rule) | train.py |
+| Gradient descent | train.py |
+| Gradient clipping | train.py |
+| Temperature-controlled sampling | generate.py |
+| RESTful API & Server | app.py |
+| Asynchronous UI & Live Tracing | index.html |
 
 ---
 
-## Project structure
+## How to run
+
+```bash
+git clone https://github.com/YOUR_USERNAME/character-text-generator
+cd character-text-generator
+pip install numpy flask flask-cors
+
+# Download tiny_shakespeare.txt, rename to data.txt, put in this folder
+
+python tokenizer.py    # Phase 1 — prepare data
+python train.py        # Phase 2 — train (watch loss drop)
+python generate.py     # Phase 3 — generate text interactively
+```
+
+**🚀 Run the Web App (Windows):**
+Simply double-click `start_website.bat`. It boots up the local server and opens your browser to the minimalist dashboard. Or manually run `python app.py` and visit `http://localhost:5000`.
+
+---
+
+## Project files
 
 ```
 text-generator/
-│
-├── data.txt               ← training text (Shakespeare)
-├── tokenizer.py           ← Phase 1: data preparation
-├── train.py               ← Phase 2: model + training loop
-├── generate.py            ← Phase 3: text generation
-│
-├── data_prepared.npz      ← saved sequences (created by tokenizer.py)
-├── vocab.json             ← character lookup tables
-└── weights.npy            ← trained model weights (created by train.py)
+├── app.py             Phase 4 — Flask API for serving the model
+├── templates/
+│   └── index.html     Phase 4 — Aesthetic Matte UI & Live Tracing
+├── start_website.bat  Phase 4 — Quick launcher for Windows
+├── tokenizer.py       Phase 1 — data preparation
+├── train.py           Phase 2 — model and training loop
+├── generate.py        Phase 3 — interactive terminal generation
+├── vocab.json         auto-created by tokenizer.py
+├── data_prepared.npz  auto-created by tokenizer.py
+└── weights.npz        auto-created by train.py
 ```
-
----
-
-## How to run it yourself
-
-**1. Clone and install**
-```bash
-git clone https://github.com/YOUR_USERNAME/text-generator
-cd text-generator
-pip install numpy
-```
-
-**2. Prepare the data**
-```bash
-python tokenizer.py
-```
-Output: `data_prepared.npz` and `vocab.json`
-
-**3. Train the model**
-```bash
-python train.py
-```
-You will see loss printing every 10 epochs. It should drop from ~4.1 to ~1.7.
-
-**4. Generate text**
-```bash
-python generate.py
-```
-Enter any seed text. The model will generate 200 characters from it.
-
----
-
-## What the terminal output looks like
-
-**During training:**
-```
-Epoch 0,   Loss: 4.1732
-Epoch 10,  Loss: 3.2451
-Epoch 50,  Loss: 2.1034
-Epoch 100, Loss: 1.7823
-Training complete. Weights saved.
-```
-
-**During generation:**
-```
-Enter seed: To be or not
-Generating...
-
-To be or not the world is come to be
-A man that shall not speak the state of men
-The sun and shadow of the broken day
-```
-
----
-
-## What I learned building this
-
-- How tokenization converts raw text into numbers a model can process
-- Why we need embeddings instead of one-hot encoding (efficiency)
-- How the forward pass produces a probability for every possible next character
-- How backpropagation traces the error backwards through every layer using the chain rule
-- Why learning rate matters — too high = exploding loss, too low = never converges
-- How temperature controls the creativity vs coherence tradeoff during generation
 
 ---
 
 ## Tech stack
 
+**Backend & AI Core:**
 - Python 3.10+
-- NumPy (the only dependency)
-- No PyTorch. No TensorFlow. No Keras. No Hugging Face.
+- NumPy (Core AI math, absolutely zero ML frameworks)
+- Flask & Flask-CORS (API Serving)
+
+**Frontend UI:**
+- Vanilla JavaScript (Async/Await Fetch)
+- HTML5 & CSS3 (Custom Glassmorphism & Minimal Matte Design)
+- Custom Grid & Flexbox layouts (No Bootstrap/Tailwind)
 
 ---
 
-## What comes next (Phase 2 projects)
+## What I learned
 
-- [ ] Attention mechanism visualizer
-- [ ] Full transformer block implementation
-- [ ] RAG-powered document Q&A app
+- Tokenization is just a lookup table. The learning happens after.
+- The X/Y shift by one character is the entire training signal.
+- Backprop is the chain rule applied backwards through each layer.
+- Temperature is a one-line change that completely transforms output style.
+- Watching loss drop in real time is the moment everything clicks.
 
 ---
 
-## About
+## What comes next
 
-Currently studying Generative AI at Planet Beyond, Pakistan.  
-Building every concept from scratch before using frameworks.  
+- Attention mechanism visualizer
+- RAG-powered document Q&A system
+- Fine-tuned domain-specific model with LoRA
 
-[LinkedIn](https://linkedin.com/in/YOUR_PROFILE) · [GitHub](https://github.com/YOUR_USERNAME)
+---
+
+Studying Generative AI at Planet Beyond, Pakistan.
+Building every concept from scratch before using frameworks.
+
+[LinkedIn](https://linkedin.com/in/YOUR_PROFILE)
