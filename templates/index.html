@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Text Synthesis | Transformer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #0a0a0c;
+            --bg-panel: #121214;
+            --border-color: #27272a;
+            --border-light: #3f3f46;
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.4);
+            --radius-lg: 16px;
+            --radius-md: 8px;
+            --radius-sm: 4px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Lively Interactive Blobs */
+        .blob {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: 0;
+            opacity: 0.5;
+            transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            pointer-events: none;
+        }
+
+        .blob-1 { width: 400px; height: 400px; background: radial-gradient(circle, var(--accent-glow), transparent); top: -100px; left: -100px; }
+        .blob-2 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(236,72,153,0.15), transparent); bottom: -200px; right: -100px; }
+
+        .layout-wrapper {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            width: 100%;
+            max-width: 1300px;
+            z-index: 1;
+        }
+
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+        }
+
+        .sidebar {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 4rem);
+            max-height: 800px;
+            position: sticky;
+            top: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8);
+        }
+
+        /* Header */
+        h1 { font-size: 2.5rem; font-weight: 500; letter-spacing: -1px; margin-bottom: 0.5rem; }
+        p.subtitle { color: var(--text-muted); font-weight: 300; }
+        .badge { background: rgba(99,102,241,0.1); color: var(--accent); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; border: 1px solid rgba(99,102,241,0.2); vertical-align: middle; margin-left: 10px; }
+
+        /* Controls */
+        .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .input-group { display: flex; flex-direction: column; gap: 0.75rem; }
+        .input-group.full-width { grid-column: 1 / -1; }
+        label { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; display: flex; justify-content: space-between; }
+        .val-display { color: var(--text-main); font-weight: 600; }
+
+        textarea {
+            background: var(--bg-base);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            color: var(--text-main);
+            padding: 1.25rem;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 120px;
+            transition: all 0.2s ease;
+        }
+        textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+        input[type="range"] { -webkit-appearance: none; height: 2px; background: var(--border-light); border-radius: 1px; outline: none; margin: 0.5rem 0; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); cursor: pointer; transition: transform 0.1s; }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+        /* Button */
+        button {
+            background: var(--text-main); color: var(--bg-base);
+            border: none; border-radius: var(--radius-md);
+            padding: 1rem 2rem; font-size: 1rem; font-weight: 600;
+            cursor: pointer; transition: all 0.2s ease; width: 100%;
+            position: relative; overflow: hidden;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(255,255,255,0.1); }
+        button:active { transform: translateY(0); }
+        button:disabled { opacity: 0.5; pointer-events: none; }
+
+        /* Output Area */
+        .output-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        .copy-btn { background: transparent; color: var(--text-muted); border: 1px solid var(--border-light); padding: 0.25rem 0.75rem; font-size: 0.75rem; border-radius: var(--radius-sm); width: auto; }
+        .copy-btn:hover { background: var(--border-light); color: var(--text-main); transform: none; box-shadow: none;}
+
+        .output-box {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 1.1rem;
+            line-height: 1.7;
+            min-height: 150px;
+            white-space: pre-wrap;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .output-box.active { border-color: var(--accent); box-shadow: inset 0 0 20px rgba(99,102,241,0.05); }
+
+        .cursor { display: inline-block; width: 8px; height: 1.2em; background-color: var(--accent); vertical-align: middle; animation: blink 1s step-end infinite; margin-left: 4px; box-shadow: 0 0 8px var(--accent); }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        /* Loader */
+        .loader { display: none; text-align: center; font-size: 0.85rem; color: var(--accent); margin-top: 1rem; text-transform: uppercase; letter-spacing: 2px; animation: pulse 1.5s infinite; }
+        .loader.active { display: block; }
+        @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+        /* Sidebar / Trace */
+        .sidebar-header { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .live-dot { height: 8px; width: 8px; background-color: #10b981; border-radius: 50%; display: inline-block; margin-right: 6px; box-shadow: 0 0 8px #10b981; animation: blink 2s infinite; }
+        
+        .trace-list { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; padding-right: 0.5rem; font-family: 'JetBrains Mono', monospace; }
+        .trace-list::-webkit-scrollbar { width: 4px; }
+        .trace-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
+
+        .trace-item {
+            font-size: 0.75rem; padding: 1rem; background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color); border-radius: var(--radius-md);
+            transition: all 0.3s ease; opacity: 0; transform: translateX(-10px); animation: slideIn 0.3s forwards;
+        }
+        .trace-item.highlight { border-color: var(--accent); background: rgba(99,102,241,0.05); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        
+        .trace-top { display: flex; justify-content: space-between; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .trace-item .step-num { color: #71717a; }
+        .trace-item .chosen { color: var(--text-main); font-weight: bold; font-size: 1.1em; }
+
+        /* Top 3 Probabilities Bars */
+        .prob-bar-container { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+        .prob-row { display: flex; align-items: center; gap: 8px; font-size: 0.7rem; }
+        .prob-char { width: 16px; color: var(--text-muted); text-align: center; }
+        .prob-track { flex-grow: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+        .prob-fill { height: 100%; background: var(--text-muted); transition: width 0.3s; }
+        .prob-row.winner .prob-char { color: var(--accent); font-weight: bold; }
+        .prob-row.winner .prob-fill { background: var(--accent); box-shadow: 0 0 5px var(--accent); }
+
+        @keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
+
+        @media (max-width: 900px) { .layout-wrapper { grid-template-columns: 1fr; } .sidebar { height: 500px; position: relative; top: 0; } }
+        @media (max-width: 600px) { .controls-grid { grid-template-columns: 1fr; } .panel { padding: 1.5rem; } }
+    </style>
+</head>
+<body>
+
+    <div class="blob blob-1" id="blob1"></div>
+    <div class="blob blob-2" id="blob2"></div>
+
+    <div class="layout-wrapper">
+        <div class="panel">
+            <header>
+                <h1>Neural Synthesis <span class="badge">Self-Attention</span></h1>
+                <p class="subtitle">Transformer Architecture Built in Pure NumPy</p>
+            </header>
+
+            <div class="controls-grid">
+                <div class="input-group full-width">
+                    <label for="seedText">Context Window (Seed)</label>
+                    <textarea id="seedText" placeholder="To be or not to be, that is the..."></textarea>
+                </div>
+                <div class="input-group">
+                    <label for="temperature">Temperature <span id="tempVal" class="val-display">0.8</span></label>
+                    <input type="range" id="temperature" min="0.1" max="1.5" step="0.1" value="0.8">
+                </div>
+                <div class="input-group">
+                    <label for="length">Tokens to Generate <span id="lenVal" class="val-display">200</span></label>
+                    <input type="range" id="length" min="50" max="600" step="50" value="200">
+                </div>
+                <div class="input-group full-width">
+                    <button id="generateBtn">Run Forward Pass</button>
+                    <div class="loader" id="loader">Computing Matrices...</div>
+                </div>
+            </div>
+
+            <div class="output-container" id="outputContainer" style="display: none;">
+                <div class="output-header">
+                    <label>Output Sequence</label>
+                    <button class="copy-btn" id="copyBtn">Copy</button>
+                </div>
+                <div class="output-box" id="outputBox"></div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <span>Model Telemetry</span>
+                <span id="traceStatus"><span class="live-dot" style="display:none;" id="liveDot"></span><span id="statusText">Awaiting Input</span></span>
+            </div>
+            <div class="trace-list" id="traceList">
+                <div style="color: #52525b; text-align: center; margin-top: 2rem; font-family: 'Inter', sans-serif; font-size: 0.85rem;">
+                    Internal attention matrices and token probabilities will stream here.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Lively Interactive Background
+        document.addEventListener('mousemove', (e) => {
+            const x = e.clientX / window.innerWidth;
+            const y = e.clientY / window.innerHeight;
+            document.getElementById('blob1').style.transform = `translate(${x * 30}px, ${y * 30}px)`;
+            document.getElementById('blob2').style.transform = `translate(${x * -40}px, ${y * -40}px)`;
+        });
+
+        // UI Logic
+        const tempSlider = document.getElementById('temperature');
+        const tempVal = document.getElementById('tempVal');
+        tempSlider.addEventListener('input', (e) => tempVal.textContent = parseFloat(e.target.value).toFixed(1));
+
+        const lenSlider = document.getElementById('length');
+        const lenVal = document.getElementById('lenVal');
+        lenSlider.addEventListener('input', (e) => lenVal.textContent = e.target.value);
+
+        const generateBtn = document.getElementById('generateBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const seedText = document.getElementById('seedText');
+        const outputContainer = document.getElementById('outputContainer');
+        const outputBox = document.getElementById('outputBox');
+        const loader = document.getElementById('loader');
+        const traceList = document.getElementById('traceList');
+        const statusText = document.getElementById('statusText');
+        const liveDot = document.getElementById('liveDot');
+
+        let fullOutputText = "";
+
+        copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(fullOutputText);
+            copyBtn.textContent = "Copied!";
+            setTimeout(() => copyBtn.textContent = "Copy", 2000);
+        });
+
+        async function typeWriterWithTrace(text, traceData, element, traceContainer) {
+            element.innerHTML = ''; traceContainer.innerHTML = '';
+            outputBox.classList.add('active');
+            statusText.textContent = 'Streaming';
+            statusText.style.color = '#10b981';
+            liveDot.style.display = 'inline-block';
+            
+            const textNode = document.createTextNode('');
+            element.appendChild(textNode);
+            const cursor = document.createElement('span'); cursor.className = 'cursor';
+            element.appendChild(cursor);
+            
+            const seedNode = document.createElement('div'); seedNode.className = 'trace-item';
+            seedNode.innerHTML = `<span style="color: #71717a">Initialization:</span> Processed ${seedText.value.trim().length} tokens.`;
+            traceContainer.appendChild(seedNode);
+
+            const seedLen = seedText.value.trim().length;
+            textNode.nodeValue = text.substring(0, seedLen);
+
+            let lastHighlight = null;
+
+            for (let i = 0; i < traceData.length; i++) {
+                const stepData = traceData[i];
+                textNode.nodeValue += stepData.chosen_char;
+                
+                const traceEl = document.createElement('div');
+                traceEl.className = 'trace-item highlight';
+                
+                let ctxStr = stepData.context_str;
+                let attWeights = stepData.attention || [];
+                let startIdx = Math.max(0, ctxStr.length - 20);
+                let visibleCtx = "";
+                
+                for (let j = startIdx; j < ctxStr.length; j++) {
+                    let char = ctxStr[j].replace(/ /g, '·').replace(/\n/g, '↵');
+                    let weight = attWeights[j] || 0;
+                    let opacity = Math.min(1.0, 0.4 + (weight * 2)); 
+                    let color = weight > 0.1 ? 'var(--accent)' : 'inherit';
+                    visibleCtx += `<span style="opacity: ${opacity}; color: ${color};">${char}</span>`;
+                }
+                
+                let visibleChar = stepData.chosen_char.replace(/ /g, '·').replace(/\n/g, '↵');
+                
+                // Build Top 3 probabilities UI
+                let probsHtml = `<div class="prob-bar-container">`;
+                if(stepData.top_3) {
+                    stepData.top_3.forEach(p => {
+                        let isWinner = p.char === stepData.chosen_char;
+                        let displayChar = p.char.replace(/ /g, '·').replace(/\n/g, '↵');
+                        let pct = Math.min(100, Math.max(2, p.prob * 100)); // min 2% for visibility
+                        probsHtml += `
+                        <div class="prob-row ${isWinner ? 'winner' : ''}">
+                            <div class="prob-char">${displayChar}</div>
+                            <div class="prob-track"><div class="prob-fill" style="width: ${pct}%"></div></div>
+                            <div style="width: 25px; text-align: right;">${Math.round(p.prob*100)}%</div>
+                        </div>`;
+                    });
+                }
+                probsHtml += `</div>`;
+
+                traceEl.innerHTML = `
+                    <div class="trace-top">
+                        <span class="step-num">[${stepData.step.toString().padStart(3, '0')}] Attention Window</span>
+                        <span class="chosen">${visibleChar}</span>
+                    </div>
+                    <div style="font-size: 1.1em; letter-spacing: 1px; margin-bottom: 12px; text-align: center; background: rgba(0,0,0,0.4); padding: 4px; border-radius: 4px;">${visibleCtx}</div>
+                    <div style="color: #71717a; font-size: 0.65rem; text-transform: uppercase;">Top Predictions</div>
+                    ${probsHtml}
+                `;
+                
+                traceContainer.appendChild(traceEl);
+                if (lastHighlight) lastHighlight.classList.remove('highlight');
+                lastHighlight = traceEl;
+                
+                traceContainer.scrollTop = traceContainer.scrollHeight;
+                element.scrollTop = element.scrollHeight;
+
+                await new Promise(r => setTimeout(r, 20)); // Smoother, faster typing
+            }
+            
+            if (lastHighlight) lastHighlight.classList.remove('highlight');
+            outputBox.classList.remove('active');
+            statusText.textContent = 'Completed';
+            statusText.style.color = '#71717a';
+            liveDot.style.display = 'none';
+        }
+
+        generateBtn.addEventListener('click', async () => {
+            const seed = seedText.value.trim();
+            if (!seed) return;
+
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Synthesizing...';
+            loader.classList.add('active');
+            outputContainer.style.display = 'none';
+            traceList.innerHTML = '<div style="color: #52525b; text-align: center; margin-top: 2rem;">Executing MatMul...</div>';
+            statusText.textContent = 'Computing';
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        seed: seed,
+                        temperature: parseFloat(tempSlider.value),
+                        length: parseInt(lenSlider.value)
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    fullOutputText = data.result;
+                    outputContainer.style.display = 'block';
+                    await typeWriterWithTrace(data.result, data.trace, outputBox, traceList);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (err) {
+                alert('Network Error: ' + err.message);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'Run Forward Pass';
+                loader.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>
