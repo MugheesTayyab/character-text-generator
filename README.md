@@ -1,4 +1,4 @@
-# 🎭 Character-Level Text Generator & Full-Stack Web App
+# 🧠 MatteMind | Character-Level Transformer
 ### A from-scratch Transformer language model built using Python + NumPy core. Zero ML frameworks. Minimalist Matte Web UI.
 
 ---
