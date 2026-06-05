@@ -9,15 +9,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-base: #07070a;
-            --bg-panel: rgba(18, 18, 24, 0.65);
-            --border-color: rgba(255, 255, 255, 0.08);
-            --border-focus: rgba(99, 102, 241, 0.5);
-            --text-main: #f4f4f7;
-            --text-muted: #9f9fad;
-            --accent-gradient: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
-            --accent: #6366f1;
-            --accent-glow: rgba(99, 102, 241, 0.15);
+            --bg-base: #0c0a09;
+            --bg-panel: rgba(28, 25, 23, 0.75);
+            --border-color: rgba(245, 158, 11, 0.09);
+            --border-focus: rgba(249, 115, 22, 0.5);
+            --text-main: #fdfaf7;
+            --text-muted: #a8a29e;
+            --accent-gradient: linear-gradient(135deg, #f59e0b 0%, #ea580c 50%, #db2777 100%);
+            --accent: #ea580c;
+            --accent-glow: rgba(234, 88, 12, 0.15);
             --radius-lg: 20px;
             --radius-md: 12px;
             --radius-sm: 6px;
@@ -55,7 +55,7 @@
         .blob-1 { 
             width: 500px; 
             height: 500px; 
-            background: radial-gradient(circle, rgba(168, 85, 247, 0.18), transparent); 
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.15), transparent); 
             top: -150px; 
             left: -150px; 
             animation: float-slow 20s infinite alternate;
@@ -64,7 +64,7 @@
         .blob-2 { 
             width: 600px; 
             height: 600px; 
-            background: radial-gradient(circle, rgba(99, 102, 241, 0.15), transparent); 
+            background: radial-gradient(circle, rgba(219, 39, 119, 0.12), transparent); 
             bottom: -250px; 
             right: -150px; 
             animation: float-slow 25s infinite alternate-reverse;
@@ -156,14 +156,14 @@
 
         .badge { 
             font-family: 'Inter', sans-serif;
-            background: rgba(99, 102, 241, 0.12); 
-            color: #818cf8; 
+            background: rgba(245, 158, 11, 0.12); 
+            color: #f59e0b; 
             padding: 4px 12px; 
             border-radius: 100px; 
             font-size: 0.75rem; 
             font-weight: 500;
-            border: 1px solid rgba(99, 102, 241, 0.25); 
-            -webkit-text-fill-color: #818cf8; /* Override text fill gradient */
+            border: 1px solid rgba(245, 158, 11, 0.25); 
+            -webkit-text-fill-color: #f59e0b; /* Override text fill gradient */
             letter-spacing: 0.5px;
             text-transform: uppercase;
         }
@@ -244,7 +244,7 @@
             height: 18px; 
             border-radius: 50%; 
             background: #fff; 
-            box-shadow: 0 0 10px rgba(99, 102, 241, 0.8);
+            box-shadow: 0 0 10px rgba(249, 115, 22, 0.8);
             border: 2px solid var(--accent);
             cursor: pointer; 
             transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); 
@@ -268,14 +268,14 @@
             cursor: pointer; 
             transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); 
             width: 100%;
-            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+            box-shadow: 0 8px 25px rgba(234, 88, 12, 0.3);
             position: relative; 
             overflow: hidden;
         }
 
         button#generateBtn:hover { 
             transform: translateY(-2px); 
-            box-shadow: 0 12px 30px rgba(99, 102, 241, 0.45); 
+            box-shadow: 0 12px 30px rgba(234, 88, 12, 0.45); 
         }
 
         button#generateBtn:active { 
@@ -341,7 +341,7 @@
 
         .output-box.active { 
             border-color: var(--border-focus); 
-            box-shadow: 0 0 25px rgba(99, 102, 241, 0.08), inset 0 2px 10px rgba(0,0,0,0.4); 
+            box-shadow: 0 0 25px rgba(234, 88, 12, 0.08), inset 0 2px 10px rgba(0,0,0,0.4); 
         }
 
         .cursor { 
@@ -366,7 +366,7 @@
             display: none; 
             text-align: center; 
             font-size: 0.8rem; 
-            color: #a855f7; 
+            color: #ea580c; 
             margin-top: 1.25rem; 
             text-transform: uppercase; 
             letter-spacing: 3px; 
@@ -401,11 +401,11 @@
         .live-dot { 
             height: 8px; 
             width: 8px; 
-            background-color: #10b981; 
+            background-color: #ea580c; 
             border-radius: 50%; 
             display: inline-block; 
             margin-right: 8px; 
-            box-shadow: 0 0 10px #10b981; 
+            box-shadow: 0 0 10px #ea580c; 
             animation: blink 2.5s infinite; 
         }
         
@@ -442,8 +442,8 @@
         }
 
         .trace-item.highlight { 
-            border-color: rgba(168, 85, 247, 0.35); 
-            background: rgba(168, 85, 247, 0.04); 
+            border-color: rgba(234, 88, 12, 0.35); 
+            background: rgba(234, 88, 12, 0.04); 
             box-shadow: 0 10px 25px rgba(0,0,0,0.3); 
         }
         
@@ -464,10 +464,10 @@
             color: #fff; 
             font-weight: 700; 
             font-size: 1.15em; 
-            background: rgba(99, 102, 241, 0.2);
+            background: rgba(234, 88, 12, 0.2);
             padding: 1px 6px;
             border-radius: 4px;
-            border: 1px solid rgba(99, 102, 241, 0.3);
+            border: 1px solid rgba(234, 88, 12, 0.3);
         }
 
         /* Top 3 Predictions Bars */
@@ -510,14 +510,14 @@
         }
 
         .prob-row.winner .prob-char { 
-            color: #a855f7; 
-            background: rgba(168, 85, 247, 0.15);
+            color: #ea580c; 
+            background: rgba(234, 88, 12, 0.15);
             font-weight: 700; 
         }
 
         .prob-row.winner .prob-fill { 
-            background: linear-gradient(90deg, #6366f1, #a855f7); 
-            box-shadow: 0 0 6px rgba(168, 85, 247, 0.6); 
+            background: linear-gradient(90deg, #ea580c, #f59e0b); 
+            box-shadow: 0 0 6px rgba(234, 88, 12, 0.6); 
         }
 
         @keyframes slideIn { 
@@ -650,7 +650,7 @@
             traceContainer.innerHTML = '';
             outputBox.classList.add('active');
             statusText.textContent = 'Streaming';
-            statusText.style.color = '#10b981';
+            statusText.style.color = '#ea580c';
             liveDot.style.display = 'inline-block';
             
             const textNode = document.createTextNode('');
@@ -685,7 +685,7 @@
                     let char = ctxStr[j].replace(/ /g, '·').replace(/\n/g, '↵');
                     let weight = attWeights[j] || 0;
                     let opacity = Math.min(1.0, 0.4 + (weight * 2.5)); 
-                    let color = weight > 0.1 ? '#818cf8' : 'inherit';
+                    let color = weight > 0.1 ? '#f59e0b' : 'inherit';
                     visibleCtx += `<span style="opacity: ${opacity}; color: ${color};">${char}</span>`;
                 }
                 
