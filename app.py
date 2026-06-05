@@ -51,7 +51,7 @@ def forward(x_ids):
     probs = exp_z2 / exp_z2.sum()
     return probs, A
 
-def generate_text(seed_text, num_chars=300, temperature=0.8):
+def generate_text(seed_text, num_chars=300, temperature=0.8, top_k=0, top_p=0.0):
     context = [char_to_ix.get(ch, 0) for ch in seed_text]
     while len(context) < seq_len:
         context = [0] + context
@@ -65,10 +65,32 @@ def generate_text(seed_text, num_chars=300, temperature=0.8):
         x_ids = np.array(context)
         probs, A = forward(x_ids)
         
-        probs = np.log(probs + 1e-9) / temperature
-        probs = np.exp(probs - np.max(probs))
-        probs = probs / probs.sum()
-        
+        # Apply temperature
+        if temperature > 0:
+            probs = np.log(probs + 1e-9) / temperature
+            probs = np.exp(probs - np.max(probs))
+            probs = probs / probs.sum()
+            
+        # Apply Top-K filtering
+        if top_k > 0:
+            top_k_val = min(top_k, len(probs))
+            top_indices = np.argsort(probs)[-top_k_val:]
+            probs_filtered = np.zeros_like(probs)
+            probs_filtered[top_indices] = probs[top_indices]
+            probs = probs_filtered / np.sum(probs_filtered)
+            
+        # Apply Top-P (Nucleus) filtering
+        if top_p > 0.0 and top_p < 1.0:
+            sorted_indices = np.argsort(probs)[::-1]
+            sorted_probs = probs[sorted_indices]
+            cum_probs = np.cumsum(sorted_probs)
+            cutoff = np.where(cum_probs > top_p)[0]
+            if len(cutoff) > 0:
+                keep_indices = sorted_indices[:cutoff[0] + 1]
+                probs_filtered = np.zeros_like(probs)
+                probs_filtered[keep_indices] = probs[keep_indices]
+                probs = probs_filtered / np.sum(probs_filtered)
+                
         next_ix = np.random.choice(vocab_size, p=probs)
         chosen_char = ix_to_char[next_ix]
         result += chosen_char
@@ -79,7 +101,7 @@ def generate_text(seed_text, num_chars=300, temperature=0.8):
         valid_len = len([c for c in context if c != 0])
         att_weights = A[-1, -valid_len:].tolist() if valid_len > 0 else []
         
-        # Get top 3 predictions
+        # Get top 3 predictions from the filtered probability distribution
         top_3_idx = np.argsort(probs)[-3:][::-1]
         top_3 = [{"char": ix_to_char[idx], "prob": float(probs[idx])} for idx in top_3_idx]
 
@@ -112,9 +134,17 @@ def generate_api():
     seed = data['seed']
     num_chars = data.get('length', 300)
     temperature = data.get('temperature', 0.8)
+    top_k = data.get('top_k', 0)
+    top_p = data.get('top_p', 0.0)
     
     try:
-        output, trace = generate_text(seed, num_chars=int(num_chars), temperature=float(temperature))
+        output, trace = generate_text(
+            seed, 
+            num_chars=int(num_chars), 
+            temperature=float(temperature),
+            top_k=int(top_k),
+            top_p=float(top_p)
+        )
         return jsonify({'result': output, 'trace': trace})
     except Exception as e:
         return jsonify({'error': str(e)}), 500

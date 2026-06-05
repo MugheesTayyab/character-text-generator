@@ -573,6 +573,14 @@
                     <label for="length">Tokens to Generate <span id="lenVal" class="val-display">200</span></label>
                     <input type="range" id="length" min="50" max="600" step="50" value="200">
                 </div>
+                <div class="input-group">
+                    <label for="topK">Top-K Filtering <span id="topKVal" class="val-display">10</span></label>
+                    <input type="range" id="topK" min="0" max="40" step="1" value="10">
+                </div>
+                <div class="input-group">
+                    <label for="topP">Top-P (Nucleus) <span id="topPVal" class="val-display">0.90</span></label>
+                    <input type="range" id="topP" min="0.0" max="1.0" step="0.05" value="0.90">
+                </div>
                 <div class="input-group full-width">
                     <button id="generateBtn">Run Forward Pass</button>
                     <div class="loader" id="loader">Computing Matrices...</div>
@@ -626,6 +634,20 @@
         const lenSlider = document.getElementById('length');
         const lenVal = document.getElementById('lenVal');
         lenSlider.addEventListener('input', (e) => lenVal.textContent = e.target.value);
+
+        const topKSlider = document.getElementById('topK');
+        const topKVal = document.getElementById('topKVal');
+        topKSlider.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            topKVal.textContent = val === 0 ? "Off" : val;
+        });
+
+        const topPSlider = document.getElementById('topP');
+        const topPVal = document.getElementById('topPVal');
+        topPSlider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            topPVal.textContent = val === 0 ? "Off" : val.toFixed(2);
+        });
 
         const generateBtn = document.getElementById('generateBtn');
         const copyBtn = document.getElementById('copyBtn');
@@ -753,7 +775,9 @@
                     body: JSON.stringify({
                         seed: seed,
                         temperature: parseFloat(tempSlider.value),
-                        length: parseInt(lenSlider.value)
+                        length: parseInt(lenSlider.value),
+                        top_k: parseInt(topKSlider.value),
+                        top_p: parseFloat(topPSlider.value)
                     })
                 });
 
