@@ -12,17 +12,55 @@ This repository implements a Character-Level Language Model designed and built c
 
 Every single mathematical operation—including tokenization, character embeddings, forward passes, scaled dot-product attention, temperature-controlled sampling, backpropagation, and gradient updates—has been manually implemented.
 
-To showcase the model, the project includes a **Full-Stack Web Application** featuring a Flask API server and a custom-designed, matte-themed glassmorphic web dashboard with live generation tracing.
+To showcase the model, the project includes a **Full-Stack Web Application** featuring a Flask API server and a custom-designed, matte-themed glassmorphic web dashboard with live generation tracing and an interactive **Transformer Math Lab**.
+
+---
+
+## 🧠 Recruiter Technical Deep-Dive (First Principles)
+
+This project was built to master the underlying mathematical and engineering concepts behind Large Language Models (LLMs) by implementing them from scratch without library abstractions.
+
+### 1. Causal Scaled Self-Attention Mechanics
+We project our input sequence embeddings $X \in \mathbb{R}^{T \times D}$ into Queries ($Q$), Keys ($K$), and Values ($V$) using weight matrices $W_q, W_k, W_v \in \mathbb{R}^{D \times D}$:
+$$Q = XW_q, \quad K = XW_k, \quad V = XW_v$$
+The attention weights matrix $A$ represents token-to-token semantic alignment, computed as:
+$$A = \text{Softmax}\left(\frac{Q K^T}{\sqrt{d_k}}\right), \quad \text{Attention}(Q, K, V) = A V$$
+
+*   **The Scaling Factor ($\frac{1}{\sqrt{d_k}}$):** When the embedding dimension $d_k$ is large, dot products grow large in magnitude, pushing the Softmax function into regions with extremely small gradients. Dividing by $\sqrt{d_k}$ scales the variance of the products to $1.0$, preventing vanishing gradients during backpropagation.
+
+### 2. Analytical Backpropagation (Derivation & Implementation)
+Without automatic differentiation tools, we derived and coded the gradients analytically. The backpropagation follows the chain rule backwards from the loss $L$ (Cross-Entropy):
+*   **Logits Gradient:** $\frac{\partial L}{\partial z_2} = \text{probs} - y \quad$ (where $y$ is the one-hot target)
+*   **Output Projection:** $dW_2 = O_{flat}^T \cdot dz_2$
+*   **Value Matrix Gradient:** $dV = A^T \cdot dO \quad$ (where $dO$ is reshaped from the projection layer gradient)
+*   **Attention Coefficients Gradient:** $dA = dO \cdot V^T$
+*   **Softmax Backpropagation:** Gradients must be backpropagated through the Softmax function:
+    $$d\text{scores} = \frac{1}{\sqrt{d_k}} A \odot \left(dA - \sum (A \odot dA)\right)$$
+*   **Query and Key Gradients:**
+    $$dQ = d\text{scores} \cdot K, \quad dK = d\text{scores}^T \cdot Q$$
+*   **Weight Projections:**
+    $$dW_q = X^T \cdot dQ, \quad dW_k = X^T \cdot dK, \quad dW_v = X^T \cdot dV$$
+
+*   **Embedding Gradients Accumulation:** Because embeddings are discrete index lookups, gradients are accumulated across matching indices using vectorized accumulation:
+    ```python
+    np.add.at(dW_embed, x_ids, demb)
+    ```
+
+### 3. Performance Engineering & Vectorization
+*   **60x Speedup via Vectorization:** We refactored single-sample training loops into vectorized mini-batches (batch size $128$). This allowed NumPy to compile operations into parallelized BLAS/LAPACK routines, dropping training epoch times from minutes to seconds.
+*   **Adam Optimizer from Scratch:** Implemented running first ($m$) and second ($v$) moment estimates of gradients with bias corrections:
+    $$\hat{m}_t = \frac{m_t}{1 - \beta_1^t}, \quad \hat{v}_t = \frac{v_t}{1 - \beta_2^t}, \quad \theta_t = \theta_{t-1} - \frac{\alpha}{\sqrt{\hat{v}_t} + \epsilon} \hat{m}_t$$
+    This allowed fast, stable training convergence, achieving a final validation loss of **2.20**.
 
 ---
 
 ## 🌟 Key Features
 
 *   **From-Scratch Architecture:** Every layer and equation is written in pure NumPy.
-*   **Aesthetic Matte UI:** A premium, modern web dashboard with an elegant matte design system, smooth animations, and typewriter generation effects.
-*   **Live Attention Tracing:** Real-time visualization showing the model's token-by-token thought process and predictions (`Context -> Selected Character`).
-*   **Temperature Control:** Dynamically adjust the creativity and randomness of the model's outputs.
-*   **Ready for Vercel:** Built-in support for instant serverless deployment on Vercel.
+*   **Interactive Math Lab:** Collapsible first-principles dashboard explaining the self-attention, backpropagation, and vectorization equations.
+*   **Aesthetic Matte UI:** A premium, custom design system utilizing warm Copper, Amber, and stone elements with smooth glassmorphic blur filters and hover translations.
+*   **Telemetry Tracing & Predictions:** Visual bars showing probability distributions over character selections and dynamic attention weights.
+*   **Dynamic Inference Control:** Sliders to control Temperature, Top-K, and Top-P (Nucleus) sampling options in real time.
 
 ---
 
@@ -43,33 +81,37 @@ Below are walk-through screenshots of the interactive dashboard:
 ## ⚙️ How It Works (The 4-Phase Pipeline)
 
 ```
-data.txt  ──>  tokenizer.py  ──>  train.py  ──>  generate.py  ──>  app.py (Web App)
-               (Phase 1)         (Phase 2)      (Phase 3)         (Phase 4)
+data.txt  ──>  tokenizer.py  ──>  train_batch.py  ──>  generate.py  ──>  app.py (Web App)
+               (Phase 1)          (Phase 2)          (Phase 3)         (Phase 4)
 ```
 
 1. **Phase 1 — Tokenization (`tokenizer.py`):**
    Reads raw text (e.g., Shakespeare), builds a character vocabulary map, encodes characters to integers, and prepares training sliding windows (X/Y pairs).
-2. **Phase 2 — Training (`train.py`):**
-   Trains character embeddings, dense projection layers, cross-entropy loss, manual chain-rule backpropagation, gradient clipping, and gradient descent. Saves the model's weights to `weights.npz` and vocabulary mappings to `vocab.json`.
+2. **Phase 2 — Vectorized Training (`train_batch.py`):**
+   Trains character embeddings, Query/Key/Value projections, dense projection layers, cross-entropy loss, manual chain-rule backpropagation, Adam optimizations, and saves the trained parameters to `weights.npz` and vocabulary mappings to `vocab.json`.
 3. **Phase 3 — CLI Generation (`generate.py`):**
    A simple terminal application to load the trained weights and vocabulary, allowing interactive text generation with custom temperature.
 4. **Phase 4 — Web Serving (`app.py` & `templates/`):**
-   A Flask web server hosting a RESTful endpoint `/api/generate` that performs inference, computes attention probabilities, and returns output characters alongside trace logs to the front-end dashboard.
+   A Flask web server hosting a RESTful endpoint `/api/generate` that performs inference, filters probabilities using Top-K and Top-P, and returns output characters alongside trace logs to the front-end dashboard.
 
 ---
 
-## 🔬 Mathematical Concepts Implemented
+## 🔬 Project Files Directory
 
-| Concept | Implementation Details | Target File |
-| :--- | :--- | :--- |
-| **Tokenization** | Character-level mapping & sliding window dataset extraction | [tokenizer.py](file:///c:/Users/mughe/OneDrive/Desktop/Personal%20projects/Text%20Generator/tokenizer.py) |
-| **Embeddings** | Trainable projection matrices $W_{embed}$ and position matrices $W_{pos}$ | [train.py](file:///c:/Users/mughe/OneDrive/Desktop/Personal%20projects/Text%20Generator/train.py) |
-| **Forward Pass** | Computes attention $Q$, $K$, $V$, dot-product similarity, and output logits | [train.py](file:///c:/Users/mughe/OneDrive/Desktop/Personal%20projects/Text%20Generator/train.py) / [app.py](file:///c:/Users/mughe/OneDrive/Desktop/Personal%20projects/Text%20Generator/app.py) |
-| **Softmax** | Stable softmax activation computation | [train.py](file:///c:/Users/mughe/OneDrive/Desktop/Personal%20projects/Text%20Generator/train.py) |
-| **Cross-Entropy Loss** | Calculates performance penalty based on probability confidence | [train.py](file:///c:/Users/mughe/OneDrive/Desktop/Personal%20projects/Text%20Generator/train.py) |
-| **Backpropagation** | Manual chain-rule implementation to compute gradients | [train.py](file:///c:/Users/mughe/OneDrive/Desktop/Personal%20projects/Text%20Generator/train.py) |
-| **Optimizations** | Learning rate schedule, SGD, and gradient clipping | [train.py](file:///c:/Users/mughe/OneDrive/Desktop/Personal%20projects/Text%20Generator/train.py) |
-| **Inference Tracing** | Step-by-step metadata tracking for token probabilities | [app.py](file:///c:/Users/mughe/OneDrive/Desktop/Personal%20projects/Text%20Generator/app.py) |
+```
+MatteMind/
+├── app.py             Phase 4 — Flask API serving the model with Top-K/Top-P options
+├── templates/
+│   └── index.html     Phase 4 — Custom Matte UI dashboard with Telemetry & Math Lab
+├── train_batch.py     Phase 2 — Vectorized Adam batch training script (fast)
+├── tokenizer.py       Phase 1 — data preparation & vocab mapping
+├── train.py           Phase 2 — Single-sample baseline training loop (educational)
+├── generate.py        Phase 3 — interactive terminal generation
+├── start_website.bat  Phase 4 — Quick launcher for Windows
+├── vocab.json         auto-created vocabulary maps
+├── weights.npz        trained high-accuracy weights (Val Loss: 2.20)
+└── data_prepared.npz  auto-created npz arrays
+```
 
 ---
 
@@ -96,9 +138,9 @@ If you wish to retrain the model on your own dataset:
    ```bash
    python tokenizer.py
    ```
-3. Run the training loop (which outputs epoch loss):
+3. Run the high-speed vectorized training:
    ```bash
-   python train.py
+   python train_batch.py
    ```
 4. Test generator in the terminal:
    ```bash

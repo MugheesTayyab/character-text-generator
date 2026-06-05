@@ -546,6 +546,98 @@
             .panel { padding: 2rem 1.5rem; } 
             h1 { font-size: 2.2rem; }
         }
+
+        /* Accordion Styling */
+        .math-deep-dive {
+            border-top: 1px solid rgba(255,255,255,0.04);
+            padding-top: 1.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .accordion-toggle {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-muted);
+            padding: 1rem 1.5rem;
+            font-size: 0.95rem;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .accordion-toggle:hover {
+            color: var(--text-main);
+            border-color: rgba(245, 158, 11, 0.25);
+            background: rgba(245, 158, 11, 0.02);
+        }
+
+        .accordion-content {
+            margin-top: 1.25rem;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .math-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+        }
+
+        .math-card {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .math-card:hover {
+            border-color: rgba(245, 158, 11, 0.15);
+            background: rgba(28, 25, 23, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .math-card h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            color: #f59e0b;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+
+        .math-eq {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #ea580c;
+            background: rgba(0,0,0,0.3);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-sm);
+            margin-bottom: 0.75rem;
+            border-left: 3px solid #ea580c;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .math-desc {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .arrow {
+            transition: transform 0.3s;
+            font-size: 0.75rem;
+        }
+
+        .arrow.open {
+            transform: rotate(180deg);
+        }
     </style>
 </head>
 <body>
@@ -593,6 +685,33 @@
                     <button class="copy-btn" id="copyBtn">Copy</button>
                 </div>
                 <div class="output-box" id="outputBox"></div>
+            </div>
+
+            <!-- Recruiter & Math Deep Dive Section -->
+            <div class="math-deep-dive">
+                <button class="accordion-toggle" id="mathToggleBtn">
+                    <span>🧠 Under the Hood: First-Principles Transformer Math</span>
+                    <span class="arrow" id="mathArrow">▼</span>
+                </button>
+                <div class="accordion-content" id="mathContent" style="display: none;">
+                    <div class="math-grid">
+                        <div class="math-card">
+                            <h3>1. Scaled Self-Attention</h3>
+                            <div class="math-eq">Attention(Q, K, V) = Softmax(Q Kᵀ / √dₖ) V</div>
+                            <div class="math-desc">Input embeddings are projected into Query (Q), Key (K), and Value (V) matrices. The dot-product similarity (Q Kᵀ) measures token dependencies. Dividing by √dₖ (scaling factor) prevents logits from exploding, avoiding vanishing gradients in the Softmax step.</div>
+                        </div>
+                        <div class="math-card">
+                            <h3>2. First-Principles Backpropagation</h3>
+                            <div class="math-eq">∂L/∂Q = dscores · K  |  ∂L/∂K = dscoresᵀ · Q</div>
+                            <div class="math-desc">Without automatic differentiation, we implement the backward pass manually. We derive the analytical gradient of Softmax (dscores = A ⊙ (dA - ∑(A ⊙ dA))), propagate gradients into projections Wq, Wk, Wv, and back into character and positional embeddings.</div>
+                        </div>
+                        <div class="math-card">
+                            <h3>3. Performance Engineering</h3>
+                            <div class="math-eq">Optimizations: Batching (x128) & Adam Optimizer</div>
+                            <div class="math-desc">Replaced single-sequence loops with vectorized 128-sample matrix updates using high-performance NumPy, resulting in a 60x training speedup. Implemented the Adam optimizer (first/second moments with bias correction) to achieve a validation loss of 2.20.</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -796,6 +915,22 @@
                 generateBtn.disabled = false;
                 generateBtn.textContent = 'Run Forward Pass';
                 loader.classList.remove('active');
+            }
+        // Accordion Toggle
+        const mathToggleBtn = document.getElementById('mathToggleBtn');
+        const mathContent = document.getElementById('mathContent');
+        const mathArrow = document.getElementById('mathArrow');
+
+        mathToggleBtn.addEventListener('click', () => {
+            const isHidden = mathContent.style.display === 'none';
+            mathContent.style.display = isHidden ? 'block' : 'none';
+            mathArrow.classList.toggle('open', isHidden);
+            if (isHidden) {
+                mathToggleBtn.style.color = 'var(--text-main)';
+                mathToggleBtn.style.borderColor = 'rgba(245, 158, 11, 0.35)';
+            } else {
+                mathToggleBtn.style.color = 'var(--text-muted)';
+                mathToggleBtn.style.borderColor = 'var(--border-color)';
             }
         });
     </script>
